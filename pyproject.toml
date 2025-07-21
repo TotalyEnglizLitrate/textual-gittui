@@ -10,8 +10,10 @@ authors = [{name = "Narendra S", email = "narendra.s1232@gmail.com"}, {name = "V
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "textual>=0.41.0",
-    "pygit2>=1.13.0",
+    "textual==4.0.0",
+    "pygit2==1.18.0",
+    "platformdirs==4.3.8",
+    "dynaconf==3.2.11"
 ]
 keywords = ["tui", "client", "terminal", "textual", "cli", "gittui", "git", "developer-tool"]
 classifiers = [
@@ -39,10 +41,10 @@ textual-gittui = "textual_gittui.main:main"
 
 [project.optional-dependencies]
 dev = [
-    "textual-dev>=1.2.0",
-    "black>=23.0.0",
-    "mypy>=1.5.0",
-    "ruff>=0.1.0",
+    "textual-dev==1.7.0",
+    "black==25.1.0",
+    "mypy==1.17.0",
+    "ruff==0.12.4",
 ]
 
 [tool.hatch.build.targets.wheel]
