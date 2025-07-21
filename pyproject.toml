@@ -6,13 +6,33 @@ build-backend = "hatchling.build"
 name = "textual-gittui"
 version = "0.1.0"
 description = "A terminal-based Git UI built with Textual"
-authors = [{name = "Narendra S", email = "narendra.s1232@gmail.com"}, {name = "Varghese K James"}]
+authors = [{name = "Narendra S", email = "narendra.s1232@gmail.com"}, {name = "Varghese K James", email = "vicfic@pm.me"}]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "textual>=0.41.0",
     "pygit2>=1.13.0",
 ]
+keywords = ["tui", "client", "terminal", "textual", "cli", "gittui", "git", "developer-tool"]
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows :: Windows 10",
+    "Operating System :: Microsoft :: Windows :: Windows 11",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Utilities",
+    "Topic :: Software Development :: Version Control :: Git"
+]
+
+[project.urls]
+Homepage = "https://github.com/totalyenglizlitrate/textual-gittui"
+Repository = "https://github.com/totalyenglizlitrate/textual-gittui"
+Issues = "https://github.com/totalyenglizlitrate/textual-gittui/issues"
 
 [project.scripts]
 textual-gittui = "textual_gittui.main:main"
