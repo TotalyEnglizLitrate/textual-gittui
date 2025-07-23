@@ -53,13 +53,8 @@
           ]
         );
     in {
-      packages = let
-        inherit (pkgs.callPackage pyproject-nix.build.util {}) mkApplication;
-      in {
-        default = mkApplication {
-          venv = pythonSet.mkVirtualEnv "application-env" workspace.deps.default;
-          package = pythonSet.textual-gittui;
-        };
+      packages = (import ./pkgs/nix/package.nix) {
+        inherit lib pkgs python pythonSet workspace pyproject-nix;
       };
 
       apps = {
