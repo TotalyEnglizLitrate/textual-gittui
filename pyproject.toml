@@ -10,7 +10,7 @@ authors = [{name = "Narendra S", email = "narendra.s1232@gmail.com"}, {name = "V
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "textual==4.0.0",
+    "textual==5.0.0",
     "pygit2==1.18.0",
     "platformdirs==4.3.8",
     "dynaconf==3.2.11"
