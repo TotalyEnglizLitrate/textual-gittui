@@ -12,6 +12,7 @@ license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
+    "textual==5.0.1",
     "pygit2==1.18.0",
     "platformdirs==4.3.8",
     "dynaconf==3.2.11"
