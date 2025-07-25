@@ -8,9 +8,10 @@ version = "0.1.0"
 description = "A terminal-based Git UI built with Textual"
 authors = [{name = "Narendra S", email = "narendra.s1232@gmail.com"}, {name = "Varghese K James", email = "vicfic@pm.me"}]
 readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
-    "textual==5.0.0",
     "pygit2==1.18.0",
     "platformdirs==4.3.8",
     "dynaconf==3.2.11"
