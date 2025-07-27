@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "textual-gittui"
+name = "textual-thalia"
 version = "0.1.0"
 description = "A terminal-based Git UI built with Textual"
 authors = [{name = "Narendra S", email = "narendra.s1232@gmail.com"}, {name = "Varghese K James", email = "vicfic@pm.me"}]
@@ -34,12 +34,12 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/totalyenglizlitrate/textual-gittui"
-Repository = "https://github.com/totalyenglizlitrate/textual-gittui"
-Issues = "https://github.com/totalyenglizlitrate/textual-gittui/issues"
+Homepage = "https://github.com/totalyenglizlitrate/textual-thalia"
+Repository = "https://github.com/totalyenglizlitrate/textual-thalia"
+Issues = "https://github.com/totalyenglizlitrate/textual-thalia/issues"
 
 [project.scripts]
-textual-gittui = "textual_gittui.main:main"
+thalia = "thalia.main:main"
 
 [project.optional-dependencies]
 dev = [
@@ -53,7 +53,7 @@ dev = [
 packages = ["src/textual_gittui"]
 
 [tool.black]
-line-length = 88
+line-length = 120
 target-version = ["py312"]
 
 [tool.mypy]
@@ -64,7 +64,7 @@ disallow_untyped_defs = true
 
 [tool.ruff]
 target-version = "py312"
-line-length = 88
+line-length = 120
 
 [tool.ruff.lint]
 select = [

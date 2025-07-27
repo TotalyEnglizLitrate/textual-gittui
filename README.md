@@ -1,1 +1,1 @@
-# textual-gittui
+# textual-thalia

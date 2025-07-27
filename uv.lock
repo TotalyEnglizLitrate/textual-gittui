@@ -185,6 +185,15 @@ wheels = [
 ]
 
 [[package]]
+name = "editables"
+version = "0.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/37/4a/986d35164e2033ddfb44515168a281a7986e260d344cf369c3f52d4c3275/editables-0.5.tar.gz", hash = "sha256:309627d9b5c4adc0e668d8c6fa7bac1ba7c8c5d415c2d27f60f081f8e80d1de2", size = 14744, upload-time = "2023-07-24T18:26:30.08Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6b/be/0f2f4a5e8adc114a02b63d92bf8edbfa24db6fc602fca83c885af2479e0e/editables-0.5-py3-none-any.whl", hash = "sha256:61e5ffa82629e0d8bfe09bc44a07db3c1ab8ed1ce78a6980732870f19b5e7d4c", size = 5098, upload-time = "2023-07-24T18:26:29.046Z" },
+]
+
+[[package]]
 name = "frozenlist"
 version = "1.7.0"
 source = { registry = "https://pypi.org/simple" }
@@ -611,15 +620,15 @@ wheels = [
 
 [[package]]
 name = "rich"
-version = "14.0.0"
+version = "14.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "markdown-it-py" },
     { name = "pygments" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a1/53/830aa4c3066a8ab0ae9a9955976fb770fe9c6102117c8ec4ab3ea62d89e8/rich-14.0.0.tar.gz", hash = "sha256:82f1bc23a6a21ebca4ae0c45af9bdbc492ed20231dcb63f297d6d1021a9d5725", size = 224078, upload-time = "2025-03-30T14:15:14.23Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fe/75/af448d8e52bf1d8fa6a9d089ca6c07ff4453d86c65c145d0a300bb073b9b/rich-14.1.0.tar.gz", hash = "sha256:e497a48b844b0320d45007cdebfeaeed8db2a4f4bcf49f15e455cfc4af11eaa8", size = 224441, upload-time = "2025-07-25T07:32:58.125Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0d/9b/63f4c7ebc259242c89b3acafdb37b41d1185c07ff0011164674e9076b491/rich-14.0.0-py3-none-any.whl", hash = "sha256:1c9491e1951aac09caffd42f448ee3d04e58923ffe14993f6e83068dc395d7e0", size = 243229, upload-time = "2025-03-30T14:15:12.283Z" },
+    { url = "https://files.pythonhosted.org/packages/e3/30/3c4d035596d3cf444529e0b2953ad0466f6049528a879d27534700580395/rich-14.1.0-py3-none-any.whl", hash = "sha256:536f5f1785986d6dbdea3c75205c473f970777b4a0d6c6dd1b696aa05a3fa04f", size = 243368, upload-time = "2025-07-25T07:32:56.73Z" },
 ]
 
 [[package]]
@@ -681,38 +690,6 @@ wheels = [
 ]
 
 [[package]]
-name = "textual-gittui"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "dynaconf" },
-    { name = "platformdirs" },
-    { name = "pygit2" },
-    { name = "textual" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "black" },
-    { name = "mypy" },
-    { name = "ruff" },
-    { name = "textual-dev" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "black", marker = "extra == 'dev'", specifier = "==25.1.0" },
-    { name = "dynaconf", specifier = "==3.2.11" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = "==1.17.0" },
-    { name = "platformdirs", specifier = "==4.3.8" },
-    { name = "pygit2", specifier = "==1.18.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = "==0.12.4" },
-    { name = "textual", specifier = "==5.0.1" },
-    { name = "textual-dev", marker = "extra == 'dev'", specifier = "==1.7.0" },
-]
-provides-extras = ["dev"]
-
-[[package]]
 name = "textual-serve"
 version = "1.1.2"
 source = { registry = "https://pypi.org/simple" }
@@ -727,6 +704,40 @@ sdist = { url = "https://files.pythonhosted.org/packages/27/41/09d5695b050d592ff
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7c/fb/0006f86960ab8a2f69c9f496db657992000547f94f53a2f483fd611b4bd2/textual_serve-1.1.2-py3-none-any.whl", hash = "sha256:147d56b165dccf2f387203fe58d43ce98ccad34003fe3d38e6d2bc8903861865", size = 447326, upload-time = "2025-04-16T12:11:43.176Z" },
 ]
+
+[[package]]
+name = "textual-thalia"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "dynaconf" },
+    { name = "platformdirs" },
+    { name = "pygit2" },
+    { name = "textual" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "black" },
+    { name = "editables" },
+    { name = "mypy" },
+    { name = "ruff" },
+    { name = "textual-dev" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "black", marker = "extra == 'dev'", specifier = "==25.1.0" },
+    { name = "dynaconf", specifier = "==3.2.11" },
+    { name = "editables", marker = "extra == 'dev'", specifier = "==0.5" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = "==1.17.0" },
+    { name = "platformdirs", specifier = "==4.3.8" },
+    { name = "pygit2", specifier = "==1.18.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = "==0.12.4" },
+    { name = "textual", specifier = "==5.0.1" },
+    { name = "textual-dev", marker = "extra == 'dev'", specifier = "==1.7.0" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "typing-extensions"

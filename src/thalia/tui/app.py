@@ -1,4 +1,4 @@
-/*
+"""
 Copyright (C) 2025 Narendra S
 
 This file is a part of the Thalia project
@@ -15,28 +15,28 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with Thalia.  If not, see <https://www.gnu.org/licenses/>.
-*/
-{
-  lib,
-  pkgs,
-  pythonSet,
-  pyproject-nix,
-  workspace,
-  ...
-}: let
-  inherit (pkgs.callPackage pyproject-nix.build.util {}) mkApplication;
-in {
-  default =
-    mkApplication {
-      venv = pythonSet.mkVirtualEnv "thalia-env" workspace.deps.default;
-      package = pythonSet.thalia;
+"""
+
+from textual.app import App
+from textual.binding import Binding
+
+from thalia.tui.screens.dashboard import DashboardScreen
+
+
+class Thalia(App):
+    """A terminal-based Git UI."""
+
+    CSS = """
+    Screen {
+        align: center middle;
+        overflow: hidden;
     }
-    // {
-      meta = {
-        description = "A git tui built with textual";
-        homepage = "https://github.com/TotalyEnglizLitrate/textual-thalia";
-        maintainers = with lib.maintainers; [TotalyEnglizLitrate];
-        license = lib.licenses.gpl3Plus;
-      };
-    };
-}
+    """
+
+    BINDINGS = [
+        Binding(key="q,ctrl+c", action="quit", description="Quit", show=True),
+    ]
+
+    def on_mount(self) -> None:
+        """Called when the app is mounted."""
+        self.push_screen(DashboardScreen())

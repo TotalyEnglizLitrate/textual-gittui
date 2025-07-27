@@ -1,23 +1,23 @@
 /*
 Copyright (C) 2025 Narendra S
 
-This file is a part of the textual-gittui project
+This file is a part of the Thalia project
 
-textual-gittui is free software: you can redistribute it and/or modify
+Thalia is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-textual-gittui is distributed in the hope that it will be useful,
+Thalia is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with textual-gittui.  If not, see <https://www.gnu.org/licenses/>.
+along with Thalia.  If not, see <https://www.gnu.org/licenses/>.
 */
 {
-  description = "Development shells and package for textual-gittui";
+  description = "Development shells and package for Thalia";
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -78,7 +78,7 @@ along with textual-gittui.  If not, see <https://www.gnu.org/licenses/>.
       apps = {
         default = {
           type = "app";
-          program = "${self.packages.${system}.default}/bin/textual-gittui";
+          program = "${self.packages.${system}.default}/bin/thalia";
         };
       };
 
@@ -91,25 +91,23 @@ along with textual-gittui.  If not, see <https://www.gnu.org/licenses/>.
             lib.composeManyExtensions [
               editableOverlay
               (final: prev: {
-                textual-gittui = prev.textual-gittui.overrideAttrs (old: {
+                textual-thalia = prev.textual-thalia.overrideAttrs (old: {
                   src = lib.fileset.toSource {
                     root = old.src;
                     fileset = lib.fileset.unions [
                       (old.src + "/pyproject.toml")
                       (old.src + "/README.md")
-                      (old.src + "/src/textual_gittui/__init__.py")
+                      (old.src + "/src/thalia/__init__.py")
                     ];
                   };
                   nativeBuildInputs =
                     old.nativeBuildInputs
-                    ++ final.resolveBuildSystem {
-                      editables = [];
-                    };
+                    ++ final.resolveBuildSystem {editables = [];};
                 });
               })
             ]
           );
-          virtualenv = editablePythonSet.mkVirtualEnv "textual-gittui-dev-env" workspace.deps.all;
+          virtualenv = editablePythonSet.mkVirtualEnv "thalia-dev-env" workspace.deps.all;
         in
           pkgs.mkShell {
             packages = [
