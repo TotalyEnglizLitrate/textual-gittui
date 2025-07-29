@@ -17,30 +17,21 @@ You should have received a copy of the GNU General Public License
 along with Thalia.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from textual.app import App
+from textual.binding import BindingType
 
-from .. import binding_loader
-from .. import config as conf
-from .screens import dashboard
+from . import cli, config
 
 
-class Thalia(App):
-    """A terminal-based Git UI."""
+def include_bindings(field: str) -> list[BindingType]:
+    fields = field.split(".")
+    settings = cli.get_settings()
+    while fields:
+        if fields[0] not in settings.__pydantic_fields__:
+            return []
 
-    CSS = """
-    Screen {
-        align: center middle;
-        overflow: hidden;
-    }
-    """
+        settings = getattr(settings, fields[0])
+        fields.pop(0)
+    if isinstance(settings, config.ScreenBindings):
+        return list(settings.get_bindings())
 
-    BINDINGS = binding_loader.include_bindings("bindings")
-
-    def __init__(self, settings: conf.Settings, **kwargs) -> None:
-        """Initialize the Thalia app."""
-        self.settings = settings
-        super().__init__(**kwargs)
-
-    def on_mount(self) -> None:
-        """Called when the app is mounted."""
-        self.push_screen(dashboard.DashboardScreen())
+    return []

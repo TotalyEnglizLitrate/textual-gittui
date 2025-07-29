@@ -19,17 +19,20 @@ along with Thalia.  If not, see <https://www.gnu.org/licenses/>.
 
 from collections.abc import Iterator
 from pathlib import Path
+from typing import cast
 
 import platformdirs
 from rich.text import Text
 from textual import on
 from textual.app import ComposeResult
-from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.events import Click
 from textual.screen import Screen
 from textual.widget import Widget
 from textual.widgets import Button, Footer, ListItem, ListView, Static
+
+from ... import binding_loader
+from .. import app
 
 
 class DashboardScreen(Screen):
@@ -58,21 +61,15 @@ class DashboardScreen(Screen):
     }
     """
     SCOPED_CSS = True
-    BINDINGS = [
-        Binding("o", action="open_repo", description="Open repository"),
-        Binding("n", action="create_repo", description="Create repository"),
-        Binding("c", action="clone_repo", description="Clone repository"),
-    ]
+
+    BINDINGS = binding_loader.include_bindings("dashboard.bindings")
 
     def compose(self) -> ComposeResult:
+        _app = cast(app.Thalia, self.app)
         yield Static(
             Text(
-                "████████ ██   ██  █████  ██      ██  █████  \n"
-                "   ██    ██   ██ ██   ██ ██      ██ ██   ██ \n"
-                "   ██    ███████ ███████ ██      ██ ███████ \n"
-                "   ██    ██   ██ ██   ██ ██      ██ ██   ██ \n"
-                "   ██    ██   ██ ██   ██ ███████ ██ ██   ██ \n",
-                style="#8AADF4",
+                _app.settings.dashboard.text,
+                _app.settings.dashboard.text_style,
             ),
             id="dash-name",
         )
@@ -95,7 +92,6 @@ class DashboardScreen(Screen):
 
 
 class RepoActions(Widget):
-
     DEFAULT_CSS = """
     Button {
         margin: 1;
