@@ -576,15 +576,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pydanclick"
-version = "0.5.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4a/b5/4de7da87d181c8809e3be95a61256a9efa557030b097f50bb6ddeefcd126/pydanclick-0.5.1.tar.gz", hash = "sha256:ddbf2ec8ce3086b0e011bd1b7cd13474de7210d27e031a37c9cec4a76971d518", size = 20911, upload-time = "2025-02-26T07:39:21.603Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/99/45/a7e33af2da5d4396e974f33ed7ed406e2cc218427cf8fdbe01c9491e51f8/pydanclick-0.5.1-py3-none-any.whl", hash = "sha256:9ef7dd384f0e04c9db3908251db8f5fe7c05d52a8824c659778036cc671f416a", size = 22163, upload-time = "2025-02-26T07:39:19.926Z" },
-]
-
-[[package]]
 name = "pydantic"
 version = "2.11.7"
 source = { registry = "https://pypi.org/simple" }
@@ -797,7 +788,6 @@ source = { editable = "." }
 dependencies = [
     { name = "click" },
     { name = "platformdirs" },
-    { name = "pydanclick" },
     { name = "pydantic" },
     { name = "pydantic-settings", extra = ["toml"] },
     { name = "pygit2" },
@@ -818,7 +808,6 @@ requires-dist = [
     { name = "click", specifier = "==8.2.1" },
     { name = "mypy", marker = "extra == 'dev'", specifier = "==1.17.0" },
     { name = "platformdirs", specifier = "==4.3.8" },
-    { name = "pydanclick", specifier = "==0.5.1" },
     { name = "pydantic", specifier = "==2.11.7" },
     { name = "pydantic-settings", extras = ["toml"], specifier = "==2.10.1" },
     { name = "pygit2", specifier = "==1.18.0" },

@@ -16,3 +16,48 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Thalia.  If not, see <https://www.gnu.org/licenses/>.
 """
+
+import os
+
+import click
+from platformdirs import user_config_path
+
+from . import config as conf
+
+
+@click.command()
+@click.option("-h", "--help", is_flag=True, help="Show this help message and exit.")
+@click.option("-v", "--version", is_flag=True, help="Show the version of Thalia.")
+@click.option(
+    "-c",
+    "--config",
+    help=f"Path to the configuration file (default: {user_config_path('thalia') / 'config.toml'})",
+    default=None,
+)
+@click.pass_context
+def cli(ctx, config, version, help):
+    """Thalia CLI"""
+    ctx.ensure_object(dict)
+
+    if help:
+        click.echo(cli.get_help(ctx))
+
+    if version:
+        click.echo(f"Thalia {conf.Settings.__version__}")
+        return
+
+    if config:
+        os.environ["THALIA_CONFIG_FILE"] = str(config)
+    settings = ctx.obj["settings"] = conf.Settings()
+    ctx.obj["config_path"] = config or user_config_path("thalia") / "config.toml"
+
+    from .tui import app
+
+    thalia = ctx.obj["app"] = app.Thalia(settings)
+    thalia.run()
+
+
+@click.pass_context
+def get_settings(ctx) -> conf.Settings:
+    """Get the settings object from the context."""
+    return ctx.obj["settings"]

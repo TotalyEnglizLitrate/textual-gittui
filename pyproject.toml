@@ -17,8 +17,7 @@ dependencies = [
     "platformdirs==4.3.8",
     "pydantic==2.11.7",
     "pydantic-settings[toml]==2.10.1",
-    "click==8.2.1",
-    "pydanclick==0.5.1"
+    "click==8.2.1"
 ]
 keywords = ["tui", "client", "terminal", "textual", "cli", "gittui", "git", "developer-tool"]
 classifiers = [
@@ -42,7 +41,7 @@ Repository = "https://github.com/totalyenglizlitrate/textual-thalia"
 Issues = "https://github.com/totalyenglizlitrate/textual-thalia/issues"
 
 [project.scripts]
-thalia = "thalia.main:main"
+thalia = "thalia.cli:cli"
 
 [project.optional-dependencies]
 dev = [
