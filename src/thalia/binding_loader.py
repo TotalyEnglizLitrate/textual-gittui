@@ -23,15 +23,18 @@ from . import cli, config
 
 
 def include_bindings(field: str) -> list[BindingType]:
+    """Get the bindings for a given field in the settings.
+    Argument field must point to a field with type signature config.ScreenBindings"""
+
     fields = field.split(".")
-    settings = cli.get_settings()
+    tmp_internal_field = cli.get_settings()
     while fields:
-        if fields[0] not in settings.__pydantic_fields__:
+        if fields[0] not in tmp_internal_field.__pydantic_fields__:
             return []
 
-        settings = getattr(settings, fields[0])
+        tmp_internal_field = getattr(tmp_internal_field, fields[0])
         fields.pop(0)
-    if isinstance(settings, config.ScreenBindings):
-        return list(settings.get_bindings())
+    if isinstance(tmp_internal_field, config.ScreenBindings):
+        return list(tmp_internal_field.get_bindings())
 
     return []

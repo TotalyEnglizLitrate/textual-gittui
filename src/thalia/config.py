@@ -25,8 +25,7 @@ from pathlib import Path
 
 from platformdirs import user_config_path
 from pydantic import BaseModel, Field, PrivateAttr, field_validator
-from pydantic_settings import (BaseSettings, PydanticBaseSettingsSource,
-                               SettingsConfigDict, TomlConfigSettingsSource)
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict, TomlConfigSettingsSource
 from rich.errors import StyleSyntaxError
 from rich.style import Style
 from textual.binding import Binding, BindingError, InvalidBinding
@@ -94,11 +93,12 @@ class DashboardSettings(BaseModel):
     """The Text shown on top of the dashboard."""
 
     text_style: str = Field(default="#8AADF4")
-    """The styling of the dashboard text, '#8AADF4' by default"""
+    """The styling of the dashboard text, '#8AADF4' by default, it can be any valid rich style string."""
 
     @field_validator("text_style")
     @classmethod
     def check_style(cls, text_style: str) -> str:
+        """Validator for text style"""
         try:
             Style.parse(text_style)
         except StyleSyntaxError:
@@ -122,6 +122,7 @@ class DashboardSettings(BaseModel):
             ]
         )
     )
+    """Dashboard Bindings"""
 
 
 class GlobalBindings(ScreenBindings):
@@ -144,7 +145,7 @@ class Settings(BaseSettings):
             ]
         )
     )
-    """App wide keybinds"""
+    """Global keybinds"""
 
     config_dir: Path = Field(default_factory=lambda: user_config_path("thalia"))
     """The directory where Thalia stores its data."""

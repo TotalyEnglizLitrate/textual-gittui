@@ -46,11 +46,13 @@ def cli(ctx, config, version, help):
         click.echo(f"Thalia {conf.Settings.__version__}")
         return
 
-    if config:
+    if config is not None:
+        # If a config file is mentioned set the config file environment variable to override the default config
         os.environ["THALIA_CONFIG_FILE"] = str(config)
     settings = ctx.obj["settings"] = conf.Settings()
     ctx.obj["config_path"] = config or user_config_path("thalia") / "config.toml"
 
+    # Load the app class and run it with the given settings
     from .tui import app
 
     thalia = ctx.obj["app"] = app.Thalia(settings)
