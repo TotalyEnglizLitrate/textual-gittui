@@ -17,7 +17,8 @@ dependencies = [
     "platformdirs==4.3.8",
     "pydantic==2.11.7",
     "pydantic-settings[toml]==2.10.1",
-    "click==8.2.1"
+    "click==8.2.1",
+    "click-default-group==1.2.4",
 ]
 keywords = ["tui", "client", "terminal", "textual", "cli", "gittui", "git", "developer-tool"]
 classifiers = [

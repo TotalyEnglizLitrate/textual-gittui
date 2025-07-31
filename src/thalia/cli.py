@@ -20,18 +20,19 @@ along with Thalia.  If not, see <https://www.gnu.org/licenses/>.
 import os
 
 import click
+from click_default_group import DefaultGroup
 from platformdirs import user_config_path
 
 from . import config as conf
 
 
-@click.command()
+@click.group(cls=DefaultGroup, default="tui", default_if_no_args=True, invoke_without_command=True)
 @click.option("-h", "--help", is_flag=True, help="Show this help message and exit.")
 @click.option("-v", "--version", is_flag=True, help="Show the version of Thalia.")
 @click.option(
     "-c",
     "--config",
-    help=f"Path to the configuration file (default: {user_config_path('thalia') / 'config.toml'})",
+    help=f"Path to the configuration file (defaults to {user_config_path('thalia') / 'config.toml'})",
     default=None,
 )
 @click.pass_context
@@ -44,18 +45,21 @@ def cli(ctx, config, version, help):
 
     if version:
         click.echo(f"Thalia {conf.Settings.__version__}")
-        return
 
     if config is not None:
         # If a config file is mentioned set the config file environment variable to override the default config
         os.environ["THALIA_CONFIG_FILE"] = str(config)
-    settings = ctx.obj["settings"] = conf.Settings()
+    ctx.obj["settings"] = conf.Settings()
     ctx.obj["config_path"] = config or user_config_path("thalia") / "config.toml"
 
+
+@cli.command()
+@click.pass_context
+def tui(ctx):
     # Load the app class and run it with the given settings
     from .tui import app
 
-    thalia = ctx.obj["app"] = app.Thalia(settings)
+    thalia = ctx.obj["app"] = app.Thalia(ctx.obj["settings"])
     thalia.run()
 
 
