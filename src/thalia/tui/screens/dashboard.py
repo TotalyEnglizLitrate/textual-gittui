@@ -22,21 +22,26 @@ from pathlib import Path
 from typing import cast
 
 import platformdirs
+import pygit2
 from rich.text import Text
-from textual import on
+from textual import on, work
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.events import Click
 from textual.screen import Screen
 from textual.widget import Widget
-from textual.widgets import Button, Footer, ListItem, ListView, Static
+from textual.widgets import Button, Footer, Input, ListItem, ListView, Static
+from textual_fspicker import SelectDirectory
+from textual_fspicker.parts import DirectoryNavigation
+from textual_fspicker.select_directory import CurrentDirectory
 
 from ... import binding_loader
 from .. import app
+from .workspace import WorkspaceScreen
 
 
 class DashboardScreen(Screen):
-    DEFAULT_CSS = """
+    CSS = """
     #dash-name {
         dock: top;
         padding: 4 0;
@@ -78,11 +83,19 @@ class DashboardScreen(Screen):
             yield RepoActions(id="repo-actions")
         yield Footer()
 
-    # TODO:
-    # implement a dirpicker/find one by the community
-    # figure out libgit2
-    def action_create_repo(self) -> None:
-        self.app.notify("Placeholder - create_repo")
+    @work
+    async def action_create_repo(self) -> None:
+        repo_dir = await self.app.push_screen_wait(CustomDirPicker(title="Select Directory for Repository"))
+        if not repo_dir:
+            self.notify("No directory selected, exiting.")
+            return
+        flags = pygit2.enums.RepositoryInitFlag
+        try:
+            repo = pygit2.init_repository(repo_dir, flags=flags.NO_REINIT | flags.MKDIR)
+        except ValueError as e:
+            self.notify(title="Repository creation failed", message=e.args[0], severity="error")
+            return
+        self.app.push_screen(WorkspaceScreen(repo))
 
     def action_clone_repo(self) -> None:
         self.app.notify("Placeholder - clone_repo")
@@ -144,3 +157,37 @@ class RepositoryEntry(ListItem):
     @on(Click)
     def action_open_repo(self) -> None:
         raise NotImplementedError
+
+
+class CustomDirPicker(SelectDirectory):
+    CSS = """
+        Input {
+            width: 40%;
+        }
+        """
+
+    def _input_bar(self) -> ComposeResult:
+        yield CurrentDirectory()
+        yield Input(Path(self._location).name)
+
+    def on_mount(self) -> None:
+        navigation = self.query_one(DirectoryNavigation)
+        navigation.show_files = False
+
+    @on(Button.Pressed, "#select")
+    @on(Input.Submitted)
+    def _select_directory(self, event: Button.Pressed | Input.Submitted) -> None:
+        event.stop()
+        match event:
+            case Input.Submitted():
+                input_val = Path(event.value)
+            case Button.Pressed():
+                input_val = self.query_one(Input).value
+                if not input_val:
+                    self.dismiss(self.query_one(DirectoryNavigation).location)
+
+                input_val = Path(input_val)
+
+        if input_val.is_absolute():
+            self.dismiss(input_val)
+        self.dismiss((self.query_one(DirectoryNavigation).location / input_val).absolute())
