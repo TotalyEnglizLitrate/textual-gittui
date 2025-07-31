@@ -29,7 +29,7 @@ in {
   default =
     mkApplication {
       venv = pythonSet.mkVirtualEnv "thalia-env" workspace.deps.default;
-      package = pythonSet.thalia;
+      package = pythonSet.textual-thalia;
     }
     // {
       meta = {
