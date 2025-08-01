@@ -17,6 +17,9 @@ You should have received a copy of the GNU General Public License
 along with Thalia.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from pathlib import Path
+
+from platformdirs import user_cache_path
 from textual.app import App
 
 from .. import binding_loader
@@ -36,9 +39,10 @@ class Thalia(App):
 
     BINDINGS = binding_loader.include_bindings("bindings")
 
-    def __init__(self, settings: conf.Settings, **kwargs) -> None:
+    def __init__(self, settings: conf.Settings, cache_dir: Path = user_cache_path("thalia"), **kwargs) -> None:
         """Initialize the Thalia app."""
         self.settings = settings
+        self.cache_dir = cache_dir
         super().__init__(**kwargs)
 
     def on_mount(self) -> None:

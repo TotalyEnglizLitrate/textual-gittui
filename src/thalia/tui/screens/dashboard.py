@@ -92,16 +92,39 @@ class DashboardScreen(Screen):
         flags = pygit2.enums.RepositoryInitFlag
         try:
             repo = pygit2.init_repository(repo_dir, flags=flags.NO_REINIT | flags.MKDIR)
-        except ValueError as e:
+        except (pygit2.GitError, ValueError) as e:
             self.notify(title="Repository creation failed", message=e.args[0], severity="error")
             return
+        except:
+            self.notify(message="Repository creation failed", severity="error")
+            return
+    
         self.app.push_screen(WorkspaceScreen(repo))
 
     def action_clone_repo(self) -> None:
         self.app.notify("Placeholder - clone_repo")
 
-    def action_open_repo(self) -> None:
-        self.app.notify("Placeholder - open_repo")
+    @work
+    async def action_open_repo(self) -> None:
+        repo_dir = await self.app.push_screen_wait(CustomDirPicker(title="Select Directory for Repository"))
+        if not repo_dir:
+            self.notify("No directory selected, exiting.")
+            return
+        
+        self._open_repo(repo_dir)
+
+    def _open_repo(self, repo_dir: Path) -> None:
+        try:
+            repo = pygit2.repository.Repository(str(repo_dir))
+        except pygit2.GitError as e:
+            self.notify(e.args[0], title="Unable to open repository", severity="error")
+            return
+        except:
+            self.notify(message="Unable to open repository", severity="error")
+            return
+
+        self.app.push_screen(WorkspaceScreen(repo))
+        
 
 
 class RepoActions(Widget):
@@ -134,8 +157,16 @@ class RecentRepos(Widget):
         cache_dir = Path(platformdirs.user_cache_dir("thalia"))
         if cache_dir.exists():
             for file, _, _ in cache_dir.walk():
-                # TODO: add git dir check once that's implemented
                 if file.is_symlink() and file.resolve().is_dir():
+                    file = file.resolve()
+                    try:
+                        _ = pygit2.repository.Repository(str(file))
+                    except pygit2.GitError:
+                        file.unlink()
+                        continue
+                    except:
+                        continue
+                    
                     yield RepositoryEntry(file.resolve())
 
 
@@ -156,7 +187,7 @@ class RepositoryEntry(ListItem):
 
     @on(Click)
     def action_open_repo(self) -> None:
-        raise NotImplementedError
+        self.query_one(DashboardScreen)._open_repo(self.path)
 
 
 class CustomDirPicker(SelectDirectory):
@@ -190,4 +221,5 @@ class CustomDirPicker(SelectDirectory):
 
         if input_val.is_absolute():
             self.dismiss(input_val)
-        self.dismiss((self.query_one(DirectoryNavigation).location / input_val).absolute())
+            
+        self.dismiss((self.query_one(DirectoryNavigation).location / input_val).resolve())

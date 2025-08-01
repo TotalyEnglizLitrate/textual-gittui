@@ -18,33 +18,35 @@ along with Thalia.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import os
+from pathlib import Path
 
 import click
 from click_default_group import DefaultGroup
-from platformdirs import user_config_path
+from platformdirs import user_config_path, user_cache_path
 
 from . import config as conf
 
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
-@click.group(cls=DefaultGroup, default="tui", default_if_no_args=True, invoke_without_command=True)
-@click.option("-h", "--help", is_flag=True, help="Show this help message and exit.")
-@click.option("-v", "--version", is_flag=True, help="Show the version of Thalia.")
+@click.group(cls=DefaultGroup, default="tui", default_if_no_args=True, invoke_without_command=True, context_settings=CONTEXT_SETTINGS)
+@click.version_option(
+    "0.0.1",
+    "--version",
+    "-v",
+)
 @click.option(
     "-c",
     "--config",
     help=f"Path to the configuration file (defaults to {user_config_path('thalia') / 'config.toml'})",
-    default=None,
+)
+@click.option(
+    "--cache-dir",
+    help=f"Path to the cache directory to use"
 )
 @click.pass_context
-def cli(ctx, config, version, help):
+def cli(ctx, config, cache_dir):
     """Thalia CLI"""
     ctx.ensure_object(dict)
-
-    if help:
-        click.echo(cli.get_help(ctx))
-
-    if version:
-        click.echo(f"Thalia {conf.Settings.__version__}")
 
     if config is not None:
         # If a config file is mentioned set the config file environment variable to override the default config
@@ -52,14 +54,17 @@ def cli(ctx, config, version, help):
     ctx.obj["settings"] = conf.Settings()
     ctx.obj["config_path"] = config or user_config_path("thalia") / "config.toml"
 
+    if cache_dir is None:
+        ctx.obj["cache_dir"] = user_cache_path("thalia")
 
-@cli.command()
+
+@cli.command(context_settings=CONTEXT_SETTINGS)
 @click.pass_context
 def tui(ctx):
     # Load the app class and run it with the given settings
     from .tui import app
-
-    thalia = ctx.obj["app"] = app.Thalia(ctx.obj["settings"])
+    
+    thalia = ctx.obj["app"] = app.Thalia(ctx.obj["settings"], ctx.obj["cache_dir"])
     thalia.run()
 
 
