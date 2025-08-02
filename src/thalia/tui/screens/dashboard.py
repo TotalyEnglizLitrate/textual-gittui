@@ -17,23 +17,23 @@ You should have received a copy of the GNU General Public License
 along with Thalia.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import sqlite3
 from collections.abc import Iterator
 from pathlib import Path
 from typing import cast
 
-import platformdirs
 import pygit2
 from rich.text import Text
 from textual import on, work
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
+from textual.content import Content
 from textual.events import Click
-from textual.screen import Screen
+from textual.screen import ModalScreen, Screen
 from textual.widget import Widget
 from textual.widgets import Button, Footer, Input, ListItem, ListView, Static
-from textual_fspicker import SelectDirectory
 from textual_fspicker.parts import DirectoryNavigation
-from textual_fspicker.select_directory import CurrentDirectory
+from textual_fspicker.select_directory import CurrentDirectory, SelectDirectory
 
 from ... import binding_loader
 from .. import app
@@ -95,14 +95,26 @@ class DashboardScreen(Screen):
         except (pygit2.GitError, ValueError) as e:
             self.notify(title="Repository creation failed", message=e.args[0], severity="error")
             return
-        except:
-            self.notify(message="Repository creation failed", severity="error")
-            return
-    
+
+        try:
+            with cast(app.Thalia, self.app).cache_db as con:
+                con.execute(
+                    "INSERT INTO Repositories(Path, last_accessed) VALUES (?, strftime('%s','now')) ON CONFLICT(Path) DO UPDATE SET last_accessed=strftime('%s','now')",
+                    (str(repo_dir),),
+                )
+        except (sqlite3.OperationalError, sqlite3.IntegrityError):
+            self.notify(
+                title="Failed to insert into cache",
+                message="Repository might not show up in recently opened list",
+                severity="warning",
+            )
+
         self.app.push_screen(WorkspaceScreen(repo))
 
-    def action_clone_repo(self) -> None:
-        self.app.notify("Placeholder - clone_repo")
+    async def action_clone_repo(self) -> None:
+        # TODO: Add a configuration option for default clone directory
+        # For now, we use the home directory as the default
+        self.app.push_screen(CloneModal(default_dir=Path.home(), dashboard=self))
 
     @work
     async def action_open_repo(self) -> None:
@@ -110,8 +122,8 @@ class DashboardScreen(Screen):
         if not repo_dir:
             self.notify("No directory selected, exiting.")
             return
-        
-        self._open_repo(repo_dir)
+
+        self._open_repo(repo_dir=repo_dir)
 
     def _open_repo(self, repo_dir: Path) -> None:
         try:
@@ -119,12 +131,24 @@ class DashboardScreen(Screen):
         except pygit2.GitError as e:
             self.notify(e.args[0], title="Unable to open repository", severity="error")
             return
-        except:
-            self.notify(message="Unable to open repository", severity="error")
-            return
+
+        try:
+            with cast(app.Thalia, self.app).cache_db as con:
+                con.execute(
+                    "INSERT INTO Repositories(Path, last_accessed) VALUES (?, strftime('%s','now')) ON CONFLICT(Path) DO UPDATE SET last_accessed=strftime('%s','now')",
+                    (str(repo_dir),),
+                )
+        except sqlite3.OperationalError:
+            self.notify(
+                title="Failed to insert into cache",
+                message="Repository might not show up in recently opened list",
+                severity="warning",
+            )
+        except sqlite3.IntegrityError:
+            # repo already in cache
+            pass
 
         self.app.push_screen(WorkspaceScreen(repo))
-        
 
 
 class RepoActions(Widget):
@@ -137,57 +161,66 @@ class RepoActions(Widget):
 
     def compose(self) -> ComposeResult:
         with Vertical():
-            yield Button("📂 Open", variant="primary", id="open")
-            yield Button("⤓ Clone", variant="primary", id="clone")
-            yield Button("＋Create", variant="primary", id="create")
+            yield Button("📂 Open", variant="primary", name="open")
+            yield Button("⤓ Clone", variant="primary", name="clone")
+            yield Button("＋Create", variant="primary", name="create")
 
     @on(Button.Pressed)
     async def handle_button(self, event: Button.Pressed) -> None:
-        await self.run_action(f"screen.{event.button.id}_repo")
+        await self.run_action(f"screen.{event.button.name}_repo")
 
 
 class RecentRepos(Widget):
     def compose(self) -> ComposeResult:
-        repos = list(self.fetch_recent_repos())
+        repos = (RepositoryEntry(x) for x in self.fetch_recent_repos())
         with Vertical():
             yield Static("Recent Repositories")
             yield ListView(*repos)
 
-    def fetch_recent_repos(self) -> Iterator[ListItem]:
-        cache_dir = Path(platformdirs.user_cache_dir("thalia"))
-        if cache_dir.exists():
-            for file, _, _ in cache_dir.walk():
-                if file.is_symlink() and file.resolve().is_dir():
-                    file = file.resolve()
-                    try:
-                        _ = pygit2.repository.Repository(str(file))
-                    except pygit2.GitError:
-                        file.unlink()
-                        continue
-                    except:
-                        continue
-                    
-                    yield RepositoryEntry(file.resolve())
+    def fetch_recent_repos(self) -> Iterator[Path]:
+        con = cast(app.Thalia, self.app).cache_db
+        try:
+            query = con.execute("SELECT Path FROM Repositories ORDER BY last_accessed DESC;")
+        except sqlite3.OperationalError:
+            return
+        to_rm: list[str] = []
+        for repo in query.fetchall():
+            repo_path = Path(repo[0])
+            if repo_path.exists() and repo_path.is_dir():
+                try:
+                    pygit2.repository.Repository(repo[0])
+                except pygit2.GitError:
+                    to_rm.append(repo[0])
+                yield repo_path
+            else:
+                to_rm.append(repo[0])
+
+        if not to_rm:
+            return
+
+        try:
+            with con:
+                con.executemany("DELETE FROM Repositories WHERE Path=?;", [(p,) for p in to_rm])
+        except sqlite3.OperationalError:
+            pass
+
+    @on(ListView.Selected)
+    def open_repo(self, event: ListView.Selected) -> None:
+        event.stop()
+        assert isinstance(event.item, RepositoryEntry)
+        event.item.action_open_repo()
 
 
 class RepositoryEntry(ListItem):
-    def __init__(
-        self,
-        path: Path,
-        name: str | None = None,
-        id: str | None = None,
-        classes: str | None = None,
-        disabled: bool = False,
-        markup: bool = True,
-    ) -> None:
+    def __init__(self, path: Path, **kwargs) -> None:
         self.path = path
         # TODO: Add more info
-        children = (Static(path.name),)
-        super().__init__(*children, name=name, id=id, classes=classes, disabled=disabled, markup=markup)
+        children = (Static(Content(path.name).truncate(40)),)
+        super().__init__(*children, **kwargs)
 
     @on(Click)
     def action_open_repo(self) -> None:
-        self.query_one(DashboardScreen)._open_repo(self.path)
+        self.query_ancestor(DashboardScreen)._open_repo(self.path)
 
 
 class CustomDirPicker(SelectDirectory):
@@ -221,5 +254,103 @@ class CustomDirPicker(SelectDirectory):
 
         if input_val.is_absolute():
             self.dismiss(input_val)
-            
+
         self.dismiss((self.query_one(DirectoryNavigation).location / input_val).resolve())
+
+
+class CloneModal(ModalScreen):
+    CSS = """
+    #clone-modal {
+        width: 40%;
+        height: 50%;
+        align: center middle;
+        content-align: center middle;
+        padding: 2 2;
+    }
+    Input {
+        margin: 1 0;
+        width: 90%;
+    }
+    Button {
+        margin: 1 1;
+    }
+
+    #picked-dir {
+        margin: 2 1;
+        content-align: left middle;
+    }
+
+    #pick-dir {
+        dock: right;
+    }
+
+    #clone-cancel {
+        dock: right;
+    }
+    """
+    SCOPED_CSS = True
+
+    def __init__(self, dashboard: DashboardScreen, default_dir: Path | None = None, **kwargs):
+        super().__init__(**kwargs)
+        self.default_dir = default_dir or Path.home()
+        self.dashboard = dashboard
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="clone-modal"):
+            yield Static("Clone Repository", id="clone-title")
+            yield Input(placeholder="Repository URL", id="repo-url")
+            with Vertical():
+                with Horizontal():
+                    yield Static(str(self.default_dir), id="picked-dir")
+                    yield Button("Browse", variant="default", id="pick-dir", classes="right-align")
+                with Horizontal(classes="right-align"):
+                    yield Button("Clone", variant="primary", id="clone-confirm")
+                    yield Button("Cancel", variant="error", id="clone-cancel")
+
+    @on(Button.Pressed, "#pick-dir")
+    @work
+    async def pick_directory(self) -> None:
+        picked = await self.app.push_screen_wait(CustomDirPicker(title="Select Target Directory for Clone"))
+        url = self.query_one("#repo-url", Input).value.strip()
+
+        if picked:
+            if picked.exists() and picked.is_dir() and any(picked.iterdir()):
+                if url:
+                    picked = picked / url.split("/")[-1]
+                else:
+                    picked = self.default_dir
+            self.query_one("#picked-dir", Static).update(str(picked))
+            self._picked_dir = picked
+            return
+
+        self._picked_dir = self.default_dir
+        self.query_one("#picked-dir", Static).update(str(self.default_dir))
+
+    @on(Button.Pressed, "#clone-confirm")
+    async def on_confirm(self) -> None:
+        url = self.query_one("#repo-url", Input).value.strip()
+        target = getattr(self, "_picked_dir", self.default_dir)
+        if not url or not target:
+            self.app.notify(
+                title="Missing info", message="Please provide both URL and target directory.", severity="warning"
+            )
+            return
+        target_path = Path(target).expanduser().resolve()
+
+        if target_path.exists() and target_path.is_dir():
+            if any(target_path.iterdir()):
+                target_path = target_path / url.split("/")[-1]
+
+        try:
+            pygit2.clone_repository(url, str(target_path))
+        except pygit2.GitError as e:
+            self.app.notify(title="Clone failed", message="\n".join(e.args), severity="error")
+            self.dismiss(None)
+            return
+
+        self.dashboard._open_repo(target_path)
+        self.dismiss()
+
+    @on(Button.Pressed, "#clone-cancel")
+    def action_cancel(self) -> None:
+        self.dismiss()
