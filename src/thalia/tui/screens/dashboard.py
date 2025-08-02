@@ -99,7 +99,8 @@ class DashboardScreen(Screen):
         try:
             with cast(app.Thalia, self.app).cache_db as con:
                 con.execute(
-                    "INSERT INTO Repositories(Path, last_accessed) VALUES (?, strftime('%s','now')) ON CONFLICT(Path) DO UPDATE SET last_accessed=strftime('%s','now')",
+                    "INSERT INTO Repositories(Path, last_accessed) VALUES"
+                    "(?, strftime('%s','now')) ON CONFLICT(Path) DO UPDATE SET last_accessed=strftime('%s','now')",
                     (str(repo_dir),),
                 )
         except (sqlite3.OperationalError, sqlite3.IntegrityError):
@@ -111,10 +112,23 @@ class DashboardScreen(Screen):
 
         self.app.push_screen(WorkspaceScreen(repo))
 
+    @work
     async def action_clone_repo(self) -> None:
         # TODO: Add a configuration option for default clone directory
         # For now, we use the home directory as the default
-        self.app.push_screen(CloneModal(default_dir=Path.home(), dashboard=self))
+
+        res = await self.app.push_screen_wait(CloneModal(default_dir=Path.home(), dashboard=self))
+        if res is None:
+            return
+
+        url, target_path = res
+        try:
+            repo = pygit2.clone_repository(url, str(target_path))
+        except pygit2.GitError as e:
+            self.notify(title="Clone failed", message="\n".join(e.args), severity="error")
+            return
+
+        self._open_repo_from_obj(repo, target_path)
 
     @work
     async def action_open_repo(self) -> None:
@@ -132,11 +146,15 @@ class DashboardScreen(Screen):
             self.notify(e.args[0], title="Unable to open repository", severity="error")
             return
 
+        self._open_repo_from_obj(repo, repo_dir)
+
+    def _open_repo_from_obj(self, repo: pygit2.repository.Repository, repo_path: Path) -> None:
         try:
             with cast(app.Thalia, self.app).cache_db as con:
                 con.execute(
-                    "INSERT INTO Repositories(Path, last_accessed) VALUES (?, strftime('%s','now')) ON CONFLICT(Path) DO UPDATE SET last_accessed=strftime('%s','now')",
-                    (str(repo_dir),),
+                    "INSERT INTO Repositories(Path, last_accessed) VALUES"
+                    "(?, strftime('%s','now')) ON CONFLICT(Path) DO UPDATE SET last_accessed=strftime('%s','now')",
+                    (str(repo_path),),
                 )
         except sqlite3.OperationalError:
             self.notify(
@@ -269,7 +287,6 @@ class CloneModal(ModalScreen):
     }
     Input {
         margin: 1 0;
-        width: 90%;
     }
     Button {
         margin: 1 1;
@@ -327,29 +344,20 @@ class CloneModal(ModalScreen):
         self.query_one("#picked-dir", Static).update(str(self.default_dir))
 
     @on(Button.Pressed, "#clone-confirm")
-    async def on_confirm(self) -> None:
+    def on_confirm(self) -> None:
         url = self.query_one("#repo-url", Input).value.strip()
         target = getattr(self, "_picked_dir", self.default_dir)
         if not url or not target:
-            self.app.notify(
+            self.notify(
                 title="Missing info", message="Please provide both URL and target directory.", severity="warning"
             )
             return
         target_path = Path(target).expanduser().resolve()
 
-        if target_path.exists() and target_path.is_dir():
-            if any(target_path.iterdir()):
-                target_path = target_path / url.split("/")[-1]
-
-        try:
-            pygit2.clone_repository(url, str(target_path))
-        except pygit2.GitError as e:
-            self.app.notify(title="Clone failed", message="\n".join(e.args), severity="error")
-            self.dismiss(None)
-            return
-
-        self.dashboard._open_repo(target_path)
-        self.dismiss()
+        # TODO: fix notification not showing up until after the modal is gone
+        self.dismiss((url, target_path))
+        self.notify(message=f"Cloning {url} into {target_path}")
+        return
 
     @on(Button.Pressed, "#clone-cancel")
     def action_cancel(self) -> None:
