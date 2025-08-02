@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "textual-thalia"
-version = "0.1.0"
+version = "0.0.1"
 description = "A terminal-based Git UI built with Textual"
 authors = [{name = "Narendra S", email = "narendra.s1232@gmail.com"}, {name = "Varghese K James", email = "vicfic@pm.me"}]
 readme = "README.md"
@@ -58,7 +58,7 @@ packages = ["src/thalia"]
 
 [tool.black]
 line-length = 120
-target-version = ["py312"]
+target-version = ["py312", "py313"]
 
 [tool.mypy]
 python_version = "3.12"
