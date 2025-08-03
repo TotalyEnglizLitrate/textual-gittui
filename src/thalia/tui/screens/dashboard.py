@@ -17,6 +17,9 @@ You should have received a copy of the GNU General Public License
 along with Thalia.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from __future__ import annotations
+
+import asyncio
 import sqlite3
 from collections.abc import Iterator
 from pathlib import Path
@@ -29,9 +32,11 @@ from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.content import Content
 from textual.events import Click
+from textual.reactive import reactive
 from textual.screen import ModalScreen, Screen
 from textual.widget import Widget
-from textual.widgets import Button, Footer, Input, ListItem, ListView, Static
+from textual.widgets import (Button, Footer, Input, ListItem, ListView,
+                             ProgressBar, Static)
 from textual_fspicker.parts import DirectoryNavigation
 from textual_fspicker.select_directory import CurrentDirectory, SelectDirectory
 
@@ -96,21 +101,7 @@ class DashboardScreen(Screen):
             self.notify(title="Repository creation failed", message=e.args[0], severity="error")
             return
 
-        try:
-            with cast(app.Thalia, self.app).cache_db as con:
-                con.execute(
-                    "INSERT INTO Repositories(Path, last_accessed) VALUES"
-                    "(?, strftime('%s','now')) ON CONFLICT(Path) DO UPDATE SET last_accessed=strftime('%s','now')",
-                    (str(repo_dir),),
-                )
-        except (sqlite3.OperationalError, sqlite3.IntegrityError):
-            self.notify(
-                title="Failed to insert into cache",
-                message="Repository might not show up in recently opened list",
-                severity="warning",
-            )
-
-        self.app.push_screen(WorkspaceScreen(repo))
+        self._open_repo_from_obj(repo, repo_dir)
 
     @work
     async def action_clone_repo(self) -> None:
@@ -122,8 +113,11 @@ class DashboardScreen(Screen):
             return
 
         url, target_path = res
+        self.notify(f"Cloning {url} into {target_path}")
         try:
-            repo = pygit2.clone_repository(url, str(target_path))
+            repo = await self.app.push_screen_wait(CloneProgressModal(repo_url=url, target_path=target_path))
+            if not repo:
+                raise pygit2.GitError("Clone operation was cancelled or failed.")
         except pygit2.GitError as e:
             self.notify(title="Clone failed", message="\n".join(e.args), severity="error")
             return
@@ -137,7 +131,7 @@ class DashboardScreen(Screen):
             self.notify("No directory selected, exiting.")
             return
 
-        self._open_repo(repo_dir=repo_dir)
+        self._open_repo(repo_dir)
 
     def _open_repo(self, repo_dir: Path) -> None:
         try:
@@ -148,13 +142,13 @@ class DashboardScreen(Screen):
 
         self._open_repo_from_obj(repo, repo_dir)
 
-    def _open_repo_from_obj(self, repo: pygit2.repository.Repository, repo_path: Path) -> None:
+    def _open_repo_from_obj(self, repo: pygit2.repository.Repository, repo_dir: Path) -> None:
         try:
             with cast(app.Thalia, self.app).cache_db as con:
                 con.execute(
                     "INSERT INTO Repositories(Path, last_accessed) VALUES"
                     "(?, strftime('%s','now')) ON CONFLICT(Path) DO UPDATE SET last_accessed=strftime('%s','now')",
-                    (str(repo_path),),
+                    (str(repo_dir),),
                 )
         except sqlite3.OperationalError:
             self.notify(
@@ -207,18 +201,16 @@ class RecentRepos(Widget):
             if repo_path.exists() and repo_path.is_dir():
                 try:
                     pygit2.repository.Repository(repo[0])
+                    yield Path(repo[0])
                 except pygit2.GitError:
-                    to_rm.append(repo[0])
-                yield repo_path
-            else:
-                to_rm.append(repo[0])
+                    to_rm.append(repo)
 
         if not to_rm:
             return
 
         try:
             with con:
-                con.executemany("DELETE FROM Repositories WHERE Path=?;", [(p,) for p in to_rm])
+                con.executemany("DELETE FROM Repositories WHERE Path=?;", to_rm)
         except sqlite3.OperationalError:
             pass
 
@@ -327,15 +319,29 @@ class CloneModal(ModalScreen):
     @on(Button.Pressed, "#pick-dir")
     @work
     async def pick_directory(self) -> None:
-        picked = await self.app.push_screen_wait(CustomDirPicker(title="Select Target Directory for Clone"))
+        picked: Path | None = await self.app.push_screen_wait(CustomDirPicker(title="Select Target Directory for Clone"))
         url = self.query_one("#repo-url", Input).value.strip()
-
-        if picked:
-            if picked.exists() and picked.is_dir() and any(picked.iterdir()):
+        # ensure picked dir can be used for cloning
+        if picked is None:
+            self.app.notify("No directory selected, using default directory.")
+            picked = self.default_dir
+        else:
+            picked = picked.expanduser().resolve()
+            if picked.exists() and any(picked.iterdir()):
+                # If the directory exists and is not empty, append the repo name to the path
                 if url:
                     picked = picked / url.split("/")[-1]
+                    if picked.exists():
+                        self.app.notify(
+                            title="Directory already exists",
+                            message=f"The directory {picked} already exists and is not empty. Please choose a different directory.",
+                            severity="warning",
+                        )
+
+                        picked = self.default_dir
                 else:
                     picked = self.default_dir
+
             self.query_one("#picked-dir", Static).update(str(picked))
             self._picked_dir = picked
             return
@@ -343,22 +349,77 @@ class CloneModal(ModalScreen):
         self._picked_dir = self.default_dir
         self.query_one("#picked-dir", Static).update(str(self.default_dir))
 
+
     @on(Button.Pressed, "#clone-confirm")
-    def on_confirm(self) -> None:
+    async def on_confirm(self) -> None:
         url = self.query_one("#repo-url", Input).value.strip()
         target = getattr(self, "_picked_dir", self.default_dir)
         if not url or not target:
-            self.notify(
+            self.app.notify(
                 title="Missing info", message="Please provide both URL and target directory.", severity="warning"
             )
             return
         target_path = Path(target).expanduser().resolve()
 
-        # TODO: fix notification not showing up until after the modal is gone
         self.dismiss((url, target_path))
-        self.notify(message=f"Cloning {url} into {target_path}")
-        return
 
     @on(Button.Pressed, "#clone-cancel")
     def action_cancel(self) -> None:
         self.dismiss()
+
+
+class CloneProgressModal(ModalScreen):
+    CSS = """
+    #clone-progress-modal {
+        height: 50%;
+        width: 50%;
+        content-align: center middle;
+        align: center middle;
+        padding: 2 2;
+    }
+
+    #clone-progress-bar {
+        align: center middle;
+        content-align: center middle;
+        margin: 2 0;
+        width: 100%;
+    }
+
+    #clone-progress-title {
+        content-align: center middle;
+        align: center middle;
+        padding: 2 0;
+    }
+    """
+    SCOPED_CSS = True
+
+    class CustomCallBack(pygit2.callbacks.RemoteCallbacks):
+        def __init__(self, parent: CloneProgressModal, credentials=None, certificate_check=None):
+            super().__init__(credentials, certificate_check)
+            self.parent = parent
+
+        def transfer_progress(self, stats):
+            progress = self.parent.query_one("#clone-progress-bar", ProgressBar)
+            if progress.total == stats.total_objects:
+                progress.update(progress=stats.received_objects)
+            else:
+                progress.update(
+                    progress=stats.received_objects, total=stats.total_objects
+                )
+
+    def __init__(self, repo_url: str, target_path: Path, **kwargs):
+        super().__init__(**kwargs)
+        self.repo_url = repo_url
+        self.target_path = target_path
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="clone-progress-modal"):
+            yield Static(f"Cloning {self.repo_url} into {self.target_path}", id="clone-progress-title")
+            yield ProgressBar(total=None, id="clone-progress-bar", show_eta=False)
+
+    @work
+    async def on_mount(self) -> None:
+        repo = await asyncio.to_thread(
+            pygit2.clone_repository, self.repo_url, str(self.target_path), callbacks=self.CustomCallBack(self)
+        )
+        self.dismiss(repo)
