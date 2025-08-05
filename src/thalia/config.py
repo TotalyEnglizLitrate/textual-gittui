@@ -166,9 +166,6 @@ class GlobalBindings(ScreenBindings):
 class Settings(BaseSettings):
     """Settings for the Thalia application."""
 
-    __version__: str = "0.1.0"
-    """The version of Thalia, used for display purposes."""
-
     dashboard: DashboardSettings = Field(default_factory=DashboardSettings)
     """Settings for the dashboard screen."""
 

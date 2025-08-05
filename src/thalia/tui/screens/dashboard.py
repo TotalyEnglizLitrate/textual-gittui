@@ -335,7 +335,7 @@ class CloneModal(ModalScreen):
                         self.app.notify(
                             title="Directory already exists",
                             message=f"The directory {picked} already exists and is not empty."
-                                "Please choose a different directory.",
+                            "Please choose a different directory.",
                             severity="warning",
                         )
 

@@ -22,6 +22,7 @@ from pathlib import Path
 
 from platformdirs import user_cache_path
 from textual.app import App
+from textual.widgets import HelpPanel
 
 from .. import binding_loader
 from .. import config as conf
@@ -35,6 +36,12 @@ class Thalia(App):
     Screen {
         align: center middle;
         overflow: hidden;
+    }
+
+    CommandPalette {
+        #--container {
+            width: 50%;
+        }
     }
     """
 
@@ -65,3 +72,10 @@ class Thalia(App):
     def on_mount(self) -> None:
         """Called when the app is mounted."""
         self.push_screen(dashboard.DashboardScreen(id="dashboard"))
+
+    def action_help(self) -> None:
+        """Toggle the help panel."""
+        if self.screen.query(HelpPanel):
+            self.action_hide_help_panel()
+            return
+        self.action_show_help_panel()
