@@ -125,6 +125,40 @@ class DashboardSettings(BaseModel):
     """Dashboard Bindings"""
 
 
+class WorkspaceSettings(BaseModel):
+    """Settings for the workspace screen."""
+
+    class Bindings(ScreenBindings):
+        _actions = {
+            "amend_commit": "Amend Last Commit",
+            "commit": "Commit Changes",
+            "push": "Push Changes",
+            "pull": "Pull Changes",
+            "stash": "Stash Changes",
+            "ignore": "Ignore File",
+            "open_file": "Open File",
+            "branch_manager": "Open Branch Manager",
+            "stash_manager": "Open Stash Manager",
+        }
+
+    bindings: Bindings = Field(
+        default=Bindings(
+            bindings=[
+                BindingTypeModel(key="a", action="amend_commit", show=False),
+                BindingTypeModel(key="c", action="commit", show=False),
+                BindingTypeModel(key="p", action="push", show=False),
+                BindingTypeModel(key="l", action="pull", show=False),
+                BindingTypeModel(key="s", action="stash", show=False),
+                BindingTypeModel(key="i", action="ignore", show=False),
+                BindingTypeModel(key="o", action="open_file", show=False),
+                BindingTypeModel(key="b", action="branch_manager", show=False),
+                BindingTypeModel(key="t", action="stash_manager", show=False),
+            ]
+        )
+    )
+    """Workspace Bindings"""
+
+
 class GlobalBindings(ScreenBindings):
     _actions = {"quit": "Quit the app"}
 
@@ -137,6 +171,9 @@ class Settings(BaseSettings):
 
     dashboard: DashboardSettings = Field(default_factory=DashboardSettings)
     """Settings for the dashboard screen."""
+
+    workspace: WorkspaceSettings = Field(default_factory=WorkspaceSettings)
+    """Settings for the workspace screen."""
 
     bindings: GlobalBindings = Field(
         default=GlobalBindings(

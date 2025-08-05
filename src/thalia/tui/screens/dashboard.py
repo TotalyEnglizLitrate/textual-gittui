@@ -32,11 +32,9 @@ from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.content import Content
 from textual.events import Click
-from textual.reactive import reactive
 from textual.screen import ModalScreen, Screen
 from textual.widget import Widget
-from textual.widgets import (Button, Footer, Input, ListItem, ListView,
-                             ProgressBar, Static)
+from textual.widgets import Button, Footer, Input, ListItem, ListView, ProgressBar, Static
 from textual_fspicker.parts import DirectoryNavigation
 from textual_fspicker.select_directory import CurrentDirectory, SelectDirectory
 
@@ -319,7 +317,9 @@ class CloneModal(ModalScreen):
     @on(Button.Pressed, "#pick-dir")
     @work
     async def pick_directory(self) -> None:
-        picked: Path | None = await self.app.push_screen_wait(CustomDirPicker(title="Select Target Directory for Clone"))
+        picked: Path | None = await self.app.push_screen_wait(
+            CustomDirPicker(title="Select Target Directory for Clone")
+        )
         url = self.query_one("#repo-url", Input).value.strip()
         # ensure picked dir can be used for cloning
         if picked is None:
@@ -334,7 +334,8 @@ class CloneModal(ModalScreen):
                     if picked.exists():
                         self.app.notify(
                             title="Directory already exists",
-                            message=f"The directory {picked} already exists and is not empty. Please choose a different directory.",
+                            message=f"The directory {picked} already exists and is not empty."
+                                "Please choose a different directory.",
                             severity="warning",
                         )
 
@@ -348,7 +349,6 @@ class CloneModal(ModalScreen):
 
         self._picked_dir = self.default_dir
         self.query_one("#picked-dir", Static).update(str(self.default_dir))
-
 
     @on(Button.Pressed, "#clone-confirm")
     async def on_confirm(self) -> None:
@@ -403,9 +403,7 @@ class CloneProgressModal(ModalScreen):
             if progress.total == stats.total_objects:
                 progress.update(progress=stats.received_objects)
             else:
-                progress.update(
-                    progress=stats.received_objects, total=stats.total_objects
-                )
+                progress.update(progress=stats.received_objects, total=stats.total_objects)
 
     def __init__(self, repo_url: str, target_path: Path, **kwargs):
         super().__init__(**kwargs)
