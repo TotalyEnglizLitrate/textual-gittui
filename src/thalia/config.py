@@ -160,7 +160,7 @@ class WorkspaceSettings(BaseModel):
 
 
 class GlobalBindings(ScreenBindings):
-    _actions = {"quit": "Quit the app"}
+    _actions = {"quit": "Quit", "help": "Toggle Help"}
 
 
 class Settings(BaseSettings):
@@ -178,7 +178,8 @@ class Settings(BaseSettings):
     bindings: GlobalBindings = Field(
         default=GlobalBindings(
             bindings=[
-                BindingTypeModel(key=("q", "ctrl+c"), action="quit", show=True),
+                BindingTypeModel(key="q", action="quit", show=True),
+                BindingTypeModel(key="?", action="help", show=True),
             ]
         )
     )

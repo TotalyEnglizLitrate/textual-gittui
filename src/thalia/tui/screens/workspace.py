@@ -48,7 +48,7 @@ class WorkspaceScreen(Screen):
     }
     """
 
-    BINDINGS = binding_loader.include_bindings("workspace")
+    BINDINGS = binding_loader.include_bindings("workspace.bindings")
 
     def __init__(
         self, repo: Repository, name: str | None = None, id: str | None = None, classes: str | None = None
