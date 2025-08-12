@@ -112,12 +112,8 @@ class DashboardScreen(Screen):
 
         url, target_path = res
         self.notify(f"Cloning {url} into {target_path}")
-        try:
-            repo = await self.app.push_screen_wait(CloneProgressModal(repo_url=url, target_path=target_path))
-            if not repo:
-                raise pygit2.GitError("Clone operation was cancelled or failed.")
-        except pygit2.GitError as e:
-            self.notify(title="Clone failed", message="\n".join(e.args), severity="error")
+        repo = await self.app.push_screen_wait(CloneProgressModal(repo_url=url, target_path=target_path))
+        if not repo:
             return
 
         self._open_repo_from_obj(repo, target_path)
@@ -354,6 +350,13 @@ class CloneModal(ModalScreen):
     async def on_confirm(self) -> None:
         url = self.query_one("#repo-url", Input).value.strip()
         target = getattr(self, "_picked_dir", self.default_dir)
+
+        if self.check_dir_validity():
+            self._picked_dir = target
+            self.query_one("#picked-dir", Static).update(str(target))
+        else:
+            return
+
         if not url or not target:
             self.app.notify(
                 title="Missing info", message="Please provide both URL and target directory.", severity="warning"
@@ -365,7 +368,27 @@ class CloneModal(ModalScreen):
 
     @on(Button.Pressed, "#clone-cancel")
     def action_cancel(self) -> None:
-        self.dismiss()
+        self.app.notify("Clone operation cancelled.")
+        if self.check_dir_validity():
+            # If the directory is valid, we can dismiss the modal
+            self._picked_dir = self.default_dir
+            self.query_one("#picked-dir", Static).update(str(self.default_dir))
+        self.dismiss(None)
+
+    def check_dir_validity(self) -> bool:
+        """
+        Check if the directory is valid for cloning and notify the user if it is not.
+        """
+        path = getattr(self, "_picked_dir", self.default_dir)
+        ret = (not path.exists()) or (path.is_dir() and not any(path.iterdir()))
+
+        if not ret:
+            self.app.notify(
+                title="Invalid Directory",
+                message=f"The directory {path} is not valid for cloning. Please choose an empty directory.",
+                severity="warning",
+            )
+        return ret
 
 
 class CloneProgressModal(ModalScreen):
@@ -390,6 +413,11 @@ class CloneProgressModal(ModalScreen):
         align: center middle;
         padding: 2 0;
     }
+
+    #clone-cancel {
+        dock: right;
+        margin: 2 0;
+    }
     """
     SCOPED_CSS = True
 
@@ -409,15 +437,36 @@ class CloneProgressModal(ModalScreen):
         super().__init__(**kwargs)
         self.repo_url = repo_url
         self.target_path = target_path
+        self.clone_task = None
 
     def compose(self) -> ComposeResult:
         with Vertical(id="clone-progress-modal"):
             yield Static(f"Cloning {self.repo_url} into {self.target_path}", id="clone-progress-title")
             yield ProgressBar(total=None, id="clone-progress-bar", show_eta=False)
+            # TODO: Make the cancel button show up bottom right of the modal
+            yield Button("Cancel", variant="error", id="clone-cancel")
+
+    @on(Button.Pressed)
+    def handle_button(self, event: Button.Pressed):
+        # should be fine if we remove the button check as there's only one button, but checking just in case
+        if event.button.id == "clone-cancel" and self.clone_task:
+            self.clone_task.cancel()
 
     @work
     async def on_mount(self) -> None:
-        repo = await asyncio.to_thread(
+        self.clone_task = asyncio.create_task(self._perform_clone())
+        try:
+            repo = await self.clone_task
+        except asyncio.CancelledError:
+            self.app.notify("Clone operation was cancelled.", severity="warning")
+            repo = None
+        except pygit2.GitError as e:
+            self.app.notify(title="Clone failed", message="\n".join(e.args), severity="error")
+            repo = None
+        finally:
+            self.dismiss(repo)
+
+    async def _perform_clone(self):
+        return await asyncio.to_thread(
             pygit2.clone_repository, self.repo_url, str(self.target_path), callbacks=self.CustomCallBack(self)
         )
-        self.dismiss(repo)

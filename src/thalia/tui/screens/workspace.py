@@ -30,10 +30,10 @@ from ... import binding_loader
 class WorkspaceScreen(Screen):
     CSS = """
     #left_panel {
-        width: 20%;
+        width: 15%;
     }
     #middle_panel {
-        width: 60%;
+        width: 65%;
     }
     #right_panel {
         width: 20%;
@@ -62,7 +62,7 @@ class WorkspaceScreen(Screen):
                 yield BranchList()
                 yield StashList()
 
-            yield FileView(id="middle_panel")
+            yield ChangesView(id="middle_panel")
 
             with Vertical(id="right_panel"):
                 yield WorkTree()
@@ -117,6 +117,6 @@ class StashList(Widget):
         yield Static("Stashes")
 
 
-class FileView(Widget):
+class ChangesView(Widget):
     def compose(self) -> ComposeResult:
         yield Static("File View")
