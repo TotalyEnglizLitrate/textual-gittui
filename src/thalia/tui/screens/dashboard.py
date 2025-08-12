@@ -305,8 +305,8 @@ class CloneModal(ModalScreen):
             with Vertical():
                 with Horizontal():
                     yield Static(str(self.default_dir), id="picked-dir")
-                    yield Button("Browse", variant="default", id="pick-dir", classes="right-align")
-                with Horizontal(classes="right-align"):
+                    yield Button("Browse", variant="default", id="pick-dir")
+                with Horizontal():
                     yield Button("Clone", variant="primary", id="clone-confirm")
                     yield Button("Cancel", variant="error", id="clone-cancel")
 
