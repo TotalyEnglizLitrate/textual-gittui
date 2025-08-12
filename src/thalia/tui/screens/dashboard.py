@@ -404,19 +404,18 @@ class CloneProgressModal(ModalScreen):
     #clone-progress-bar {
         align: center middle;
         content-align: center middle;
-        margin: 2 0;
+        margin: 1 0;
         width: 100%;
     }
 
     #clone-progress-title {
         content-align: center middle;
         align: center middle;
-        padding: 2 0;
+        padding: 1 0;
     }
 
     #clone-cancel {
         dock: right;
-        margin: 2 0;
     }
     """
     SCOPED_CSS = True
@@ -443,8 +442,8 @@ class CloneProgressModal(ModalScreen):
         with Vertical(id="clone-progress-modal"):
             yield Static(f"Cloning {self.repo_url} into {self.target_path}", id="clone-progress-title")
             yield ProgressBar(total=None, id="clone-progress-bar", show_eta=False)
-            # TODO: Make the cancel button show up bottom right of the modal
-            yield Button("Cancel", variant="error", id="clone-cancel")
+            with Horizontal():
+                yield Button("Cancel", variant="error", id="clone-cancel")
 
     @on(Button.Pressed)
     def handle_button(self, event: Button.Pressed):
